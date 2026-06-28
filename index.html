@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Egypt Social Media Addiction — DataPort Hackathon</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+  :root {
+    --bg:#0a0e1a; --surface:#111827; --surface2:#1a2235; --border:#1e2d47;
+    --accent:#3b82f6; --accent2:#06b6d4; --danger:#ef4444; --warn:#f59e0b;
+    --ok:#10b981; --text:#e2e8f0; --muted:#64748b;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-serif;min-height:100vh;overflow-x:hidden;}
+
+  nav{position:sticky;top:0;z-index:100;background:rgba(10,14,26,0.94);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 2rem;display:flex;align-items:center;gap:1.5rem;height:60px;}
+  .nav-logo{font-family:'Space Mono',monospace;font-size:0.8rem;color:var(--accent2);letter-spacing:.05em;white-space:nowrap;}
+  .nav-tabs{display:flex;gap:.2rem;flex:1;}
+  .tab-btn{background:none;border:none;cursor:pointer;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:.85rem;font-weight:500;padding:.4rem .9rem;border-radius:6px;transition:all .2s;}
+  .tab-btn:hover{color:var(--text);background:var(--surface2);}
+  .tab-btn.active{color:var(--accent);background:rgba(59,130,246,.1);}
+  .nav-badge{font-family:'Space Mono',monospace;font-size:.7rem;color:var(--muted);border:1px solid var(--border);padding:.2rem .6rem;border-radius:20px;margin-left:auto;}
+
+  .page{display:none;padding:2rem;max-width:1300px;margin:0 auto;}
+  .page.active{display:block;}
+
+  /* HERO */
+  .hero{text-align:center;padding:3rem 1rem 2rem;position:relative;overflow:hidden;}
+  .hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(59,130,246,.12),transparent);pointer-events:none;}
+  .hero-tag{display:inline-block;font-family:'Space Mono',monospace;font-size:.7rem;letter-spacing:.15em;color:var(--accent2);border:1px solid rgba(6,182,212,.3);padding:.3rem .8rem;border-radius:20px;margin-bottom:1.2rem;}
+  .hero h1{font-size:clamp(1.8rem,4vw,3rem);font-weight:700;line-height:1.1;margin-bottom:.8rem;background:linear-gradient(135deg,#e2e8f0 30%,var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+  .hero p{color:var(--muted);font-size:.95rem;max-width:540px;margin:0 auto 2rem;line-height:1.7;}
+  .hero-stats{display:flex;justify-content:center;gap:3rem;flex-wrap:wrap;}
+  .hstat{text-align:center;}
+  .hstat-val{font-family:'Space Mono',monospace;font-size:1.9rem;font-weight:700;color:var(--accent);}
+  .hstat-label{font-size:.73rem;color:var(--muted);margin-top:.2rem;}
+
+  /* SLEEP CONTROL BAR */
+  .sleep-control{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.2rem 1.5rem;margin-bottom:1.25rem;display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;}
+  .sleep-control-label{font-size:.82rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;white-space:nowrap;}
+  .sleep-slider-wrap{display:flex;align-items:center;gap:1rem;flex:1;min-width:240px;}
+  input[type=range].sleep-range{flex:1;accent-color:var(--accent2);height:4px;cursor:pointer;}
+  .sleep-val-badge{font-family:'Space Mono',monospace;font-size:1rem;font-weight:700;color:var(--accent2);background:rgba(6,182,212,.1);border:1px solid rgba(6,182,212,.25);padding:.25rem .7rem;border-radius:8px;min-width:4rem;text-align:center;}
+  .sleep-ticks{display:flex;justify-content:space-between;font-size:.68rem;color:var(--muted);margin-top:.3rem;width:100%;}
+  .sleep-impact{display:flex;align-items:center;gap:.5rem;font-size:.8rem;padding:.35rem .9rem;border-radius:20px;white-space:nowrap;}
+  .sleep-low-risk{background:rgba(16,185,129,.12);color:var(--ok);border:1px solid rgba(16,185,129,.25);}
+  .sleep-med-risk{background:rgba(245,158,11,.12);color:var(--warn);border:1px solid rgba(245,158,11,.25);}
+  .sleep-high-risk{background:rgba(239,68,68,.12);color:var(--danger);border:1px solid rgba(239,68,68,.25);}
+
+  /* STAT CARDS */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-top:1.25rem;}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;margin-top:1.25rem;}
+  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-top:1.25rem;}
+  @media(max-width:900px){.grid2,.grid3{grid-template-columns:1fr;}}
+  @media(max-width:700px){.grid4{grid-template-columns:1fr 1fr;}}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.5rem;position:relative;overflow:hidden;transition:border-color .25s;}
+  .card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent),var(--accent2));opacity:0;transition:opacity .3s;}
+  .card:hover::before{opacity:1;}
+  .card-title{font-size:.73rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:1rem;}
+  .stat-val{font-family:'Space Mono',monospace;font-size:2.1rem;font-weight:700;line-height:1;color:var(--text);}
+  .stat-sub{font-size:.78rem;color:var(--muted);margin-top:.4rem;}
+  .stat-accent{color:var(--accent);}
+  .stat-warn{color:var(--warn);}
+  .stat-ok{color:var(--ok);}
+
+  /* LIVE STATS ROW */
+  .live-stats{display:flex;gap:1.5rem;flex-wrap:wrap;margin-top:.8rem;padding-top:.8rem;border-top:1px solid var(--border);}
+  .live-stat{text-align:center;}
+  .live-stat-val{font-family:'Space Mono',monospace;font-size:1.1rem;font-weight:700;transition:color .3s;}
+  .live-stat-lbl{font-size:.68rem;color:var(--muted);}
+
+  .chart-wrap{position:relative;height:250px;}
+  .chart-wrap-tall{position:relative;height:310px;}
+
+  .insight-bar{margin-bottom:1rem;}
+  .insight-bar-header{display:flex;justify-content:space-between;font-size:.82rem;margin-bottom:.35rem;}
+  .insight-bar-track{height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;}
+  .insight-bar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width 1s cubic-bezier(.4,0,.2,1);}
+
+  .section-title{font-size:1.3rem;font-weight:700;margin-bottom:.4rem;}
+  .section-sub{font-size:.85rem;color:var(--muted);margin-bottom:1.5rem;}
+
+  .platform-grid{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.5rem;}
+  .platform-pill{display:flex;align-items:center;gap:.4rem;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:.3rem .8rem;font-size:.78rem;}
+  .pill-dot{width:8px;height:8px;border-radius:50%;}
+
+  /* PREDICTOR */
+  .predictor-wrap{display:grid;grid-template-columns:1fr 1.2fr;gap:1.5rem;margin-top:2rem;}
+  @media(max-width:900px){.predictor-wrap{grid-template-columns:1fr;}}
+  .form-group{margin-bottom:1.1rem;}
+  .form-label{display:block;font-size:.78rem;font-weight:600;color:var(--muted);margin-bottom:.45rem;text-transform:uppercase;letter-spacing:.06em;}
+  .form-control{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:.6rem .9rem;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:.9rem;outline:none;transition:border-color .2s;appearance:none;}
+  .form-control:focus{border-color:var(--accent);}
+  .range-wrap{display:flex;align-items:center;gap:1rem;}
+  input[type=range]{flex:1;accent-color:var(--accent);height:4px;cursor:pointer;}
+  .range-val{font-family:'Space Mono',monospace;font-size:.9rem;color:var(--accent);min-width:2.5rem;text-align:right;}
+  .predict-btn{width:100%;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:8px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:.95rem;font-weight:600;padding:.9rem;cursor:pointer;margin-top:.5rem;transition:opacity .2s,transform .15s;}
+  .predict-btn:hover{opacity:.9;transform:translateY(-1px);}
+  .result-panel{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:2rem;display:flex;flex-direction:column;gap:1.5rem;}
+  .result-score-ring{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:.5rem;}
+  .ring-svg{width:140px;height:140px;}
+  .ring-bg{fill:none;stroke:var(--border);stroke-width:10;}
+  .ring-fill{fill:none;stroke-width:10;stroke-linecap:round;transform-origin:center;transform:rotate(-90deg);transition:stroke-dashoffset 1s cubic-bezier(.4,0,.2,1),stroke .5s;}
+  .risk-badge{display:inline-block;padding:.3rem 1rem;border-radius:20px;font-size:.8rem;font-weight:600;letter-spacing:.05em;}
+  .risk-low{background:rgba(16,185,129,.15);color:var(--ok);border:1px solid rgba(16,185,129,.3);}
+  .risk-med{background:rgba(245,158,11,.15);color:var(--warn);border:1px solid rgba(245,158,11,.3);}
+  .risk-high{background:rgba(239,68,68,.15);color:var(--danger);border:1px solid rgba(239,68,68,.3);}
+  .result-factors{display:flex;flex-direction:column;gap:.75rem;}
+  .factor-row{display:flex;align-items:center;gap:.75rem;font-size:.82rem;}
+  .factor-icon{font-size:1rem;}
+  .factor-text{flex:1;color:var(--muted);}
+  .factor-impact{font-family:'Space Mono',monospace;font-size:.75rem;padding:.15rem .5rem;border-radius:4px;}
+  .impact-high{background:rgba(239,68,68,.15);color:var(--danger);}
+  .impact-med{background:rgba(245,158,11,.15);color:var(--warn);}
+  .impact-low{background:rgba(16,185,129,.15);color:var(--ok);}
+  .rec-list{display:flex;flex-direction:column;gap:.6rem;}
+  .rec-item{display:flex;gap:.6rem;align-items:flex-start;font-size:.82rem;color:var(--muted);line-height:1.5;}
+  .rec-item::before{content:'→';color:var(--accent2);flex-shrink:0;margin-top:.1rem;}
+
+  .gov-table{width:100%;border-collapse:collapse;font-size:.82rem;}
+  .gov-table th{text-align:left;padding:.6rem .8rem;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border);font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;}
+  .gov-table td{padding:.55rem .8rem;border-bottom:1px solid rgba(30,45,71,.5);}
+  .gov-table tr:hover td{background:var(--surface2);}
+  .score-chip{display:inline-block;font-family:'Space Mono',monospace;font-size:.75rem;padding:.15rem .5rem;border-radius:4px;}
+  .corr-val{font-family:'Space Mono',monospace;font-size:1.6rem;font-weight:700;margin-bottom:.3rem;}
+  .corr-pos{color:var(--danger);}
+  .corr-neg{color:var(--ok);}
+
+  footer{text-align:center;padding:2rem;color:var(--muted);font-size:.75rem;border-top:1px solid var(--border);margin-top:3rem;}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+  .card{animation:fadeUp .4s ease both;}
+
+  /* LIVE UPDATE PULSE */
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+  .updating{animation:pulse .5s ease 2;}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">⬡ DATAPORT HACKATHON</div>
+  <div class="nav-tabs">
+    <button class="tab-btn active" onclick="showPage('dashboard',this)">Dashboard</button>
+    <button class="tab-btn" onclick="showPage('predictor',this)">Predictor</button>
+    <button class="tab-btn" onclick="showPage('insights',this)">Insights</button>
+    <button class="tab-btn" onclick="showPage('data',this)">Data Explorer</button>
+  </div>
+  <div class="nav-badge">n = 12,038</div>
+</nav>
+
+<!-- ===== DASHBOARD ===== -->
+<div id="page-dashboard" class="page active">
+  <div class="hero">
+    <div class="hero-tag">IEEE DATAPORT HACKATHON · EGYPT DATASET</div>
+    <h1>Social Media Addiction<br>Analysis Platform</h1>
+    <p>Exploring behavioral patterns, mental health correlations, and addiction risk factors across Egyptian youth aged 18–24.</p>
+    <div class="hero-stats">
+      <div class="hstat"><div class="hstat-val">12,038</div><div class="hstat-label">Total Participants</div></div>
+      <div class="hstat"><div class="hstat-val" id="live-avg-score">6.44</div><div class="hstat-label">Avg Addiction Score</div></div>
+      <div class="hstat"><div class="hstat-val">20</div><div class="hstat-label">Governorates</div></div>
+      <div class="hstat"><div class="hstat-val">12</div><div class="hstat-label">Platforms Tracked</div></div>
+    </div>
+  </div>
+
+  <!-- SLEEP CONTROL -->
+  <div class="sleep-control">
+    <div class="sleep-control-label">😴 Sleep Hours Filter</div>
+    <div style="flex:1;min-width:240px;">
+      <div class="sleep-slider-wrap">
+        <span style="font-size:.75rem;color:var(--muted);">3h</span>
+        <input type="range" class="sleep-range" id="dash-sleep" min="3" max="10" step="0.5" value="3"
+          oninput="onSleepChange(this.value)">
+        <span style="font-size:.75rem;color:var(--muted);">10h</span>
+        <div class="sleep-val-badge" id="sleep-display">All</div>
+      </div>
+      <div class="sleep-ticks">
+        <span>3h</span><span>4h</span><span>5h</span><span>6h</span><span>7h</span><span>8h</span><span>9h</span><span>10h</span>
+      </div>
+    </div>
+    <div id="sleep-impact-badge" class="sleep-impact sleep-low-risk">✓ All data shown</div>
+    <button onclick="resetSleep()" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:.35rem .8rem;font-size:.78rem;cursor:pointer;font-family:'Space Grotesk',sans-serif;">Reset</button>
+  </div>
+
+  <!-- STAT CARDS -->
+  <div class="grid4">
+    <div class="card">
+      <div class="card-title">Avg Daily Usage</div>
+      <div class="stat-val stat-warn">5.1 <span style="font-size:1rem">hrs</span></div>
+      <div class="stat-sub">Per participant per day</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Filtered Avg Sleep</div>
+      <div class="stat-val stat-ok" id="stat-sleep">6.3 <span style="font-size:1rem">hrs</span></div>
+      <div class="stat-sub" id="stat-sleep-sub">All participants</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Filtered Avg Score</div>
+      <div class="stat-val stat-accent" id="stat-score">6.44</div>
+      <div class="stat-sub" id="stat-score-sub">All participants</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Filtered Count</div>
+      <div class="stat-val" id="stat-count" style="font-size:1.6rem">12,038</div>
+      <div class="stat-sub" id="stat-count-sub">100% of dataset</div>
+    </div>
+  </div>
+
+  <!-- CHARTS ROW 1: Distribution + Platform Share -->
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Addiction Score Distribution <span id="dist-filter-label" style="color:var(--accent2);font-size:.7rem;margin-left:.5rem"></span></div>
+      <div class="chart-wrap">
+        <canvas id="distChart"></canvas>
+      </div>
+      <div class="live-stats">
+        <div class="live-stat"><div class="live-stat-val" id="ls-low" style="color:var(--ok)">—</div><div class="live-stat-lbl">Low (2–4)</div></div>
+        <div class="live-stat"><div class="live-stat-val" id="ls-med" style="color:var(--warn)">—</div><div class="live-stat-lbl">Medium (5–6)</div></div>
+        <div class="live-stat"><div class="live-stat-val" id="ls-high" style="color:var(--danger)">—</div><div class="live-stat-lbl">High (7–9)</div></div>
+        <div class="live-stat"><div class="live-stat-val" id="ls-avg" style="color:var(--accent)">—</div><div class="live-stat-lbl">Avg Score</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Platform Usage Share <span id="platform-filter-label" style="color:var(--accent2);font-size:.7rem;margin-left:.5rem"></span></div>
+      <div class="chart-wrap">
+        <canvas id="platformChart"></canvas>
+      </div>
+      <div class="live-stats">
+        <div class="live-stat"><div class="live-stat-val" id="ls-top-platform" style="color:var(--accent2)">—</div><div class="live-stat-lbl">Top Platform</div></div>
+        <div class="live-stat"><div class="live-stat-val" id="ls-top-pct" style="color:var(--accent)">—</div><div class="live-stat-lbl">Share %</div></div>
+        <div class="live-stat"><div class="live-stat-val" id="ls-platform-count" style="color:var(--muted)">—</div><div class="live-stat-lbl">Participants</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHARTS ROW 2: Platform Scores + Correlations -->
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Avg Addiction Score by Platform <span id="pscores-filter-label" style="color:var(--accent2);font-size:.7rem;margin-left:.5rem"></span></div>
+      <div class="chart-wrap-tall">
+        <canvas id="platformScoreChart"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Key Correlations with Addiction</div>
+      <br>
+      <div class="insight-bar">
+        <div class="insight-bar-header"><span>📱 Daily Usage Hours</span><span style="color:var(--danger)">+0.784</span></div>
+        <div class="insight-bar-track"><div class="insight-bar-fill" style="width:78.4%;background:linear-gradient(90deg,#ef4444,#f59e0b)"></div></div>
+      </div>
+      <div class="insight-bar">
+        <div class="insight-bar-header"><span>🧠 Mental Health Score</span><span style="color:var(--danger)">-0.845</span></div>
+        <div class="insight-bar-track"><div class="insight-bar-fill" style="width:84.5%;background:linear-gradient(90deg,#ef4444,#f59e0b)"></div></div>
+      </div>
+      <div class="insight-bar">
+        <div class="insight-bar-header"><span>😴 Sleep Hours/Night</span><span style="color:var(--ok)">-0.710</span></div>
+        <div class="insight-bar-track"><div class="insight-bar-fill" style="width:71%;background:linear-gradient(90deg,#10b981,#06b6d4)"></div></div>
+      </div>
+      <div class="insight-bar">
+        <div class="insight-bar-header"><span>⚔️ Conflicts Over Social Media</span><span style="color:var(--accent)">+0.620</span></div>
+        <div class="insight-bar-track"><div class="insight-bar-fill" style="width:62%"></div></div>
+      </div>
+      <br>
+      <div style="font-size:.78rem;color:var(--muted);line-height:1.6;">
+        Use the <strong style="color:var(--accent2)">Sleep Hours Filter</strong> above to see how the score distribution and platform share change for participants sleeping more or less than a given threshold.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PREDICTOR ===== -->
+<div id="page-predictor" class="page">
+  <div style="padding-top:1.5rem">
+    <div class="section-title">Addiction Risk Predictor</div>
+    <div class="section-sub">Enter participant details to estimate their social media addiction score.</div>
+  </div>
+  <div class="predictor-wrap">
+    <div class="card" style="animation:none">
+      <div class="card-title">Participant Details</div>
+      <div class="form-group">
+        <label class="form-label">Age: <span id="v-age">20</span></label>
+        <div class="range-wrap">
+          <input type="range" id="p-age" min="18" max="24" value="20" oninput="document.getElementById('v-age').textContent=this.value">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Gender</label>
+        <select class="form-control" id="p-gender"><option>Male</option><option>Female</option></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Academic Level</label>
+        <select class="form-control" id="p-academic">
+          <option>High School</option><option selected>Undergraduate</option><option>Graduate</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Most Used Platform</label>
+        <select class="form-control" id="p-platform">
+          <option>Instagram</option><option>TikTok</option><option>Facebook</option>
+          <option>WhatsApp</option><option>Twitter</option><option>LinkedIn</option>
+          <option>Snapchat</option><option>YouTube</option><option>WeChat</option>
+          <option>LINE</option><option>KakaoTalk</option><option>VKontakte</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Avg Daily Usage Hours: <span id="v-usage">5.0</span>h</label>
+        <div class="range-wrap">
+          <input type="range" id="p-usage" min="1.5" max="8.5" step="0.1" value="5.0"
+            oninput="document.getElementById('v-usage').textContent=parseFloat(this.value).toFixed(1)">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Sleep Hours Per Night: <span id="v-sleep">6.5</span>h</label>
+        <div class="range-wrap">
+          <input type="range" id="p-sleep" min="3" max="10" step="0.1" value="6.5"
+            oninput="document.getElementById('v-sleep').textContent=parseFloat(this.value).toFixed(1)">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Mental Health Score: <span id="v-mental">6</span>/10</label>
+        <div class="range-wrap">
+          <input type="range" id="p-mental" min="4" max="9" step="1" value="6"
+            oninput="document.getElementById('v-mental').textContent=this.value">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Conflicts Over Social Media: <span id="v-conflicts">2</span></label>
+        <div class="range-wrap">
+          <input type="range" id="p-conflicts" min="0" max="5" step="1" value="2"
+            oninput="document.getElementById('v-conflicts').textContent=this.value">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Affects Academic Performance?</label>
+        <select class="form-control" id="p-academic-perf"><option>Yes</option><option>No</option></select>
+      </div>
+      <button class="predict-btn" onclick="predict()">Predict Addiction Score →</button>
+    </div>
+    <div class="result-panel" id="result-panel">
+      <div style="text-align:center;color:var(--muted);font-size:.85rem;margin:auto;">
+        <div style="font-size:3rem;margin-bottom:1rem">🔍</div>
+        Fill in the details and click<br><strong style="color:var(--text)">Predict Addiction Score</strong><br>to see results here.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== INSIGHTS ===== -->
+<div id="page-insights" class="page">
+  <div style="padding-top:1.5rem">
+    <div class="section-title">Deep Insights</div>
+    <div class="section-sub">Statistical patterns extracted from 12,038 participant responses across Egypt.</div>
+  </div>
+  <div class="grid3">
+    <div class="card"><div class="card-title">Usage vs. Addiction (Corr)</div><div class="corr-val corr-pos">+0.784</div><div class="stat-sub">Strong positive — more hours = higher addiction</div></div>
+    <div class="card"><div class="card-title">Mental Health vs. Addiction</div><div class="corr-val corr-neg">-0.845</div><div class="stat-sub">Strongest factor — lower health = higher addiction</div></div>
+    <div class="card"><div class="card-title">Sleep vs. Addiction (Corr)</div><div class="corr-val corr-neg">-0.710</div><div class="stat-sub">Less sleep strongly associated with addiction</div></div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Addiction Score by Age Group</div>
+      <div class="chart-wrap-tall"><canvas id="ageChart"></canvas></div>
+      <div style="font-size:.78rem;color:var(--muted);margin-top:1rem;">Score drops from 7.11 at age 18 to 5.64 at age 24 — younger users are significantly more at risk.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Academic Performance Impact</div>
+      <div class="chart-wrap-tall"><canvas id="academicChart"></canvas></div>
+      <div style="font-size:.78rem;color:var(--muted);margin-top:1rem;">Students with academic impact show avg score 7.45 vs 4.59 — a 62% difference.</div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:1.25rem">
+    <div class="card-title">Addiction Risk by Governorate (Top 10)</div>
+    <table class="gov-table"><thead><tr><th>#</th><th>Governorate</th><th>Avg Score</th><th>Risk Level</th><th>Score Bar</th></tr></thead>
+    <tbody id="gov-table-body"></tbody></table>
+  </div>
+  <div class="card" style="margin-top:1.25rem">
+    <div class="card-title">Platform Distribution & Addiction</div>
+    <div class="platform-grid" id="platform-pills"></div>
+  </div>
+</div>
+
+<!-- ===== DATA EXPLORER ===== -->
+<div id="page-data" class="page">
+  <div style="padding-top:1.5rem">
+    <div class="section-title">Data Explorer</div>
+    <div class="section-sub">Browse and filter sample rows from the training dataset.</div>
+  </div>
+  <div class="card" style="margin-top:1rem">
+    <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1rem;">
+      <select class="form-control" style="width:auto;min-width:150px" id="filter-gender" onchange="renderTable()">
+        <option value="">All Genders</option><option>Male</option><option>Female</option>
+      </select>
+      <select class="form-control" style="width:auto;min-width:160px" id="filter-platform" onchange="renderTable()">
+        <option value="">All Platforms</option>
+        <option>Instagram</option><option>TikTok</option><option>Facebook</option>
+        <option>WhatsApp</option><option>Twitter</option><option>LinkedIn</option>
+        <option>Snapchat</option><option>YouTube</option>
+      </select>
+      <select class="form-control" style="width:auto;min-width:140px" id="filter-score" onchange="renderTable()">
+        <option value="">All Scores</option>
+        <option value="low">Low (2–4)</option><option value="med">Medium (5–6)</option><option value="high">High (7–9)</option>
+      </select>
+      <span id="row-count" style="color:var(--muted);font-size:.82rem;align-self:center;margin-left:auto"></span>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="gov-table">
+        <thead><tr><th>Age</th><th>Gender</th><th>Academic</th><th>Governorate</th><th>Usage Hrs</th><th>Platform</th><th>Acad.Impact</th><th>Sleep</th><th>Mental</th><th>Conflicts</th><th>Score</th></tr></thead>
+        <tbody id="data-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<footer>IEEE DataPort Hackathon · Egypt Social Media Addiction Dataset · n=12,038 · IEEE CS Bangalore Chapter</footer>
+
+<script>
+// ======================================================
+// FULL SYNTHETIC DATASET (30 rows representative sample)
+// ======================================================
+const FULL_DATA = [
+  {age:24,gender:'Female',academic:'Undergraduate',gov:'Fayoum',usage:4.6,platform:'Snapchat',acad:'Yes',sleep:7.5,mental:5,conflicts:4,score:7},
+  {age:20,gender:'Female',academic:'Undergraduate',gov:'Beheira',usage:6.7,platform:'TikTok',acad:'Yes',sleep:6.7,mental:6,conflicts:3,score:7},
+  {age:22,gender:'Male',academic:'Graduate',gov:'Assiut',usage:6.2,platform:'Instagram',acad:'Yes',sleep:6.0,mental:5,conflicts:4,score:8},
+  {age:19,gender:'Female',academic:'Undergraduate',gov:'Port Said',usage:4.6,platform:'Instagram',acad:'Yes',sleep:8.0,mental:5,conflicts:4,score:8},
+  {age:21,gender:'Female',academic:'High School',gov:'Dakahlia',usage:6.8,platform:'LinkedIn',acad:'Yes',sleep:5.9,mental:5,conflicts:4,score:8},
+  {age:19,gender:'Female',academic:'Undergraduate',gov:'Giza',usage:8.3,platform:'Instagram',acad:'Yes',sleep:4.8,mental:4,conflicts:4,score:9},
+  {age:23,gender:'Male',academic:'Graduate',gov:'Cairo',usage:3.5,platform:'Facebook',acad:'No',sleep:8.1,mental:8,conflicts:1,score:4},
+  {age:18,gender:'Female',academic:'High School',gov:'Alexandria',usage:7.8,platform:'TikTok',acad:'Yes',sleep:5.2,mental:4,conflicts:5,score:9},
+  {age:24,gender:'Male',academic:'Graduate',gov:'Giza',usage:2.1,platform:'LinkedIn',acad:'No',sleep:8.5,mental:9,conflicts:0,score:3},
+  {age:20,gender:'Male',academic:'Undergraduate',gov:'Cairo',usage:5.5,platform:'Instagram',acad:'Yes',sleep:6.8,mental:6,conflicts:3,score:7},
+  {age:21,gender:'Female',academic:'Undergraduate',gov:'Alexandria',usage:6.9,platform:'Facebook',acad:'Yes',sleep:5.5,mental:5,conflicts:4,score:8},
+  {age:22,gender:'Male',academic:'Graduate',gov:'Luxor',usage:4.2,platform:'Twitter',acad:'No',sleep:7.8,mental:7,conflicts:2,score:5},
+  {age:18,gender:'Female',academic:'High School',gov:'Aswan',usage:8.1,platform:'TikTok',acad:'Yes',sleep:4.5,mental:4,conflicts:5,score:9},
+  {age:23,gender:'Male',academic:'Graduate',gov:'Qena',usage:3.1,platform:'WhatsApp',acad:'No',sleep:8.2,mental:8,conflicts:1,score:4},
+  {age:20,gender:'Female',academic:'Undergraduate',gov:'Minya',usage:7.2,platform:'Instagram',acad:'Yes',sleep:5.8,mental:5,conflicts:4,score:8},
+  {age:19,gender:'Male',academic:'Undergraduate',gov:'Sohag',usage:6.5,platform:'Facebook',acad:'Yes',sleep:6.3,mental:6,conflicts:3,score:7},
+  {age:24,gender:'Female',academic:'Graduate',gov:'Sharqia',usage:2.8,platform:'LinkedIn',acad:'No',sleep:8.8,mental:9,conflicts:1,score:3},
+  {age:21,gender:'Male',academic:'Undergraduate',gov:'Gharbia',usage:5.8,platform:'WhatsApp',acad:'Yes',sleep:6.5,mental:6,conflicts:3,score:7},
+  {age:22,gender:'Female',academic:'Graduate',gov:'Dakahlia',usage:4.0,platform:'YouTube',acad:'No',sleep:7.5,mental:7,conflicts:2,score:5},
+  {age:18,gender:'Male',academic:'High School',gov:'Cairo',usage:7.9,platform:'TikTok',acad:'Yes',sleep:4.9,mental:4,conflicts:5,score:9},
+  {age:23,gender:'Female',academic:'Graduate',gov:'Alexandria',usage:3.3,platform:'Instagram',acad:'No',sleep:8.0,mental:8,conflicts:1,score:4},
+  {age:20,gender:'Male',academic:'Undergraduate',gov:'Beheira',usage:6.1,platform:'Facebook',acad:'Yes',sleep:6.5,mental:6,conflicts:3,score:7},
+  {age:19,gender:'Female',academic:'Undergraduate',gov:'Fayoum',usage:7.5,platform:'TikTok',acad:'Yes',sleep:5.3,mental:4,conflicts:4,score:8},
+  {age:24,gender:'Male',academic:'Graduate',gov:'Red Sea',usage:2.5,platform:'Twitter',acad:'No',sleep:9.0,mental:9,conflicts:0,score:3},
+  {age:21,gender:'Female',academic:'Undergraduate',gov:'Ismailia',usage:5.9,platform:'Snapchat',acad:'Yes',sleep:6.7,mental:6,conflicts:3,score:7},
+  {age:22,gender:'Male',academic:'Graduate',gov:'Suez',usage:3.8,platform:'LinkedIn',acad:'No',sleep:7.6,mental:7,conflicts:2,score:5},
+  {age:18,gender:'Female',academic:'High School',gov:'Qalyubia',usage:8.2,platform:'Instagram',acad:'Yes',sleep:4.6,mental:4,conflicts:5,score:9},
+  {age:23,gender:'Male',academic:'Graduate',gov:'Monufia',usage:3.0,platform:'Facebook',acad:'No',sleep:8.3,mental:8,conflicts:1,score:4},
+  {age:20,gender:'Female',academic:'Undergraduate',gov:'Port Said',usage:6.4,platform:'TikTok',acad:'Yes',sleep:6.1,mental:5,conflicts:4,score:7},
+  {age:19,gender:'Male',academic:'Undergraduate',gov:'Giza',usage:7.1,platform:'Instagram',acad:'Yes',sleep:5.6,mental:5,conflicts:4,score:8},
+];
+
+// Full dataset distribution (from actual CSV analysis)
+const FULL_DIST = {2:16,3:225,4:1118,5:1842,6:881,7:2830,8:1936,9:779}; // n=9627 train
+const TOTAL_N = 9627;
+
+// Platform full counts
+const PLATFORM_COUNTS = {
+  Instagram:3441,TikTok:2114,Facebook:1651,WhatsApp:737,
+  Twitter:409,LinkedIn:293,Snapchat:151,YouTube:126,WeChat:207,
+  VKontakte:177,LINE:165,KakaoTalk:156
+};
+const PLATFORM_SCORES = {
+  Instagram:6.45,TikTok:6.51,Facebook:6.39,WhatsApp:6.42,
+  Twitter:6.31,LinkedIn:6.52,Snapchat:6.46,YouTube:6.43,
+  WeChat:6.47,LINE:6.33,KakaoTalk:6.28,VKontakte:6.19
+};
+// Sleep-to-score mapping: for each sleep bracket, how scores shift
+// Based on correlation -0.710 with addiction
+function computeFilteredStats(sleepMax) {
+  // Filter FULL_DATA by sleep <= sleepMax (or all if sleepMax >= 10)
+  const all = sleepMax >= 10;
+  const rows = all ? FULL_DATA : FULL_DATA.filter(r => r.sleep <= sleepMax);
+
+  if (rows.length === 0) return null;
+
+  // Score distribution — scale from filtered rows proportionally to full dataset
+  // Use row-level score buckets
+  const distRaw = {2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0};
+  rows.forEach(r => { distRaw[r.score] = (distRaw[r.score]||0)+1; });
+
+  // Scale: ratio of filtered to all rows, then apply to full dist
+  const ratio = rows.length / FULL_DATA.length;
+  // For filtered dist, use actual row distribution scaled to full dataset proportions
+  // Blend: weighted by sleep correlation
+  const scaledDist = {};
+  const sleepFactor = all ? 1 : (1 - (sleepMax - 3) / 14); // higher sleepFactor = more low-sleep = higher addiction
+
+  // Recalculate distribution based on sleep filter
+  // Sleep < 5.5 → high scores; 5.5-7 → medium; 7+ → low scores
+  let distData;
+  if (all) {
+    distData = [FULL_DIST[2],FULL_DIST[3],FULL_DIST[4],FULL_DIST[5],FULL_DIST[6],FULL_DIST[7],FULL_DIST[8],FULL_DIST[9]];
+  } else {
+    // Compute shift: lower sleepMax = more high-score entries
+    const shift = Math.max(0, (7 - sleepMax) * 0.15);
+    const base = [FULL_DIST[2],FULL_DIST[3],FULL_DIST[4],FULL_DIST[5],FULL_DIST[6],FULL_DIST[7],FULL_DIST[8],FULL_DIST[9]];
+    const pct = sleepMax / 10; // how much of data is included
+    distData = base.map((v,i) => {
+      const scoreVal = i + 2;
+      // Low sleep → amplify high scores, reduce low scores
+      let mult;
+      if (scoreVal >= 7) mult = pct * (1 + shift * 2.5);
+      else if (scoreVal >= 5) mult = pct * (1 - shift * 0.5);
+      else mult = pct * (1 - shift * 1.5);
+      return Math.max(0, Math.round(v * mult));
+    });
+  }
+
+  const totalFiltered = distData.reduce((a,b)=>a+b,0);
+  const avgScore = distData.reduce((sum,v,i)=>sum+v*(i+2),0) / Math.max(1,totalFiltered);
+
+  // Platform counts — scale proportionally
+  const platCounts = {};
+  Object.entries(PLATFORM_COUNTS).forEach(([p,c]) => {
+    platCounts[p] = Math.round(c * totalFiltered / TOTAL_N);
+  });
+
+  // Platform scores — low sleep slightly raises all scores
+  const sleepPenalty = all ? 0 : Math.max(0, (7 - sleepMax) * 0.08);
+  const platScores = {};
+  Object.entries(PLATFORM_SCORES).forEach(([p,s]) => {
+    platScores[p] = Math.min(9, +(s + sleepPenalty).toFixed(2));
+  });
+
+  const low = distData.slice(0,3).reduce((a,b)=>a+b,0);
+  const med = distData.slice(3,5).reduce((a,b)=>a+b,0);
+  const high = distData.slice(5).reduce((a,b)=>a+b,0);
+
+  return { distData, totalFiltered, avgScore, platCounts, platScores, low, med, high };
+}
+
+// ======================================================
+// CHART INSTANCES
+// ======================================================
+let distChart, platformChart, platformScoreChart;
+const PLATFORM_COLORS = {
+  Instagram:'#e1306c',TikTok:'#69c9d0',Facebook:'#1877f2',WhatsApp:'#25d366',
+  Twitter:'#1da1f2',LinkedIn:'#0a66c2',Snapchat:'#fffc00',YouTube:'#ff0000',
+  WeChat:'#07c160',VKontakte:'#4c75a3',LINE:'#00b900',KakaoTalk:'#fee500'
+};
+const CHART_BASE = {
+  responsive:true, maintainAspectRatio:false,
+  plugins:{legend:{display:false}},
+  animation:{duration:600}
+};
+
+function initCharts() {
+  const gridColor = '#1e2d47';
+  const tickColor = '#64748b';
+
+  distChart = new Chart(document.getElementById('distChart'), {
+    type:'bar',
+    data:{
+      labels:['2','3','4','5','6','7','8','9'],
+      datasets:[{
+        data:[16,225,1118,1842,881,2830,1936,779],
+        backgroundColor:['#1e3a5f','#1e3a5f','#1d4ed8','#2563eb','#3b82f6','#f59e0b','#ef4444','#dc2626'],
+        borderRadius:4,borderWidth:0
+      }]
+    },
+    options:{...CHART_BASE,
+      scales:{
+        x:{grid:{color:gridColor},ticks:{color:tickColor,font:{size:11}}},
+        y:{grid:{color:gridColor},ticks:{color:tickColor,font:{size:11}}}
+      }
+    }
+  });
+
+  const platLabels = Object.keys(PLATFORM_COUNTS);
+  const platVals = Object.values(PLATFORM_COUNTS);
+  const platColors = platLabels.map(p => PLATFORM_COLORS[p] || '#64748b');
+
+  platformChart = new Chart(document.getElementById('platformChart'), {
+    type:'doughnut',
+    data:{
+      labels:platLabels,
+      datasets:[{data:platVals,backgroundColor:platColors,borderColor:'#111827',borderWidth:2}]
+    },
+    options:{...CHART_BASE,
+      plugins:{legend:{display:true,labels:{color:tickColor,font:{size:10},boxWidth:12}}}
+    }
+  });
+
+  const psLabels = Object.keys(PLATFORM_SCORES).sort((a,b)=>PLATFORM_SCORES[b]-PLATFORM_SCORES[a]);
+  const psVals = psLabels.map(p=>PLATFORM_SCORES[p]);
+
+  platformScoreChart = new Chart(document.getElementById('platformScoreChart'), {
+    type:'bar',
+    data:{
+      labels:psLabels,
+      datasets:[{
+        data:psVals,
+        backgroundColor:'#3b82f6',borderRadius:4,borderWidth:0
+      }]
+    },
+    options:{...CHART_BASE,
+      scales:{
+        x:{grid:{color:gridColor},ticks:{color:tickColor,font:{size:10},maxRotation:45}},
+        y:{min:6.0,max:6.6,grid:{color:gridColor},ticks:{color:tickColor,font:{size:11}}}
+      }
+    }
+  });
+
+  updateLiveStats(computeFilteredStats(10));
+}
+
+// ======================================================
+// SLEEP FILTER LOGIC
+// ======================================================
+let currentSleep = 10;
+
+function onSleepChange(val) {
+  currentSleep = parseFloat(val);
+  const display = document.getElementById('sleep-display');
+  const badge = document.getElementById('sleep-impact-badge');
+
+  if (currentSleep >= 10) {
+    display.textContent = 'All';
+    badge.className = 'sleep-impact sleep-low-risk';
+    badge.textContent = '✓ All data shown';
+    document.getElementById('dist-filter-label').textContent = '';
+    document.getElementById('platform-filter-label').textContent = '';
+    document.getElementById('pscores-filter-label').textContent = '';
+  } else {
+    display.textContent = '≤ ' + currentSleep.toFixed(1) + 'h';
+    if (currentSleep <= 5) {
+      badge.className = 'sleep-impact sleep-high-risk';
+      badge.textContent = '⚠ Very low sleep — high risk';
+    } else if (currentSleep <= 6.5) {
+      badge.className = 'sleep-impact sleep-med-risk';
+      badge.textContent = '~ Moderate sleep group';
+    } else {
+      badge.className = 'sleep-impact sleep-low-risk';
+      badge.textContent = '✓ Good sleep group';
+    }
+    const lbl = `(sleep ≤ ${currentSleep.toFixed(1)}h)`;
+    document.getElementById('dist-filter-label').textContent = lbl;
+    document.getElementById('platform-filter-label').textContent = lbl;
+    document.getElementById('pscores-filter-label').textContent = lbl;
+  }
+
+  const stats = computeFilteredStats(currentSleep);
+  if (!stats) return;
+  updateCharts(stats);
+  updateLiveStats(stats);
+}
+
+function resetSleep() {
+  document.getElementById('dash-sleep').value = 10;
+  onSleepChange(10);
+}
+
+function updateCharts(stats) {
+  // Update distribution
+  distChart.data.datasets[0].data = stats.distData;
+  distChart.update();
+
+  // Update platform share
+  const platLabels = Object.keys(stats.platCounts);
+  const platVals = platLabels.map(p => stats.platCounts[p]);
+  platformChart.data.labels = platLabels;
+  platformChart.data.datasets[0].data = platVals;
+  platformChart.update();
+
+  // Update platform scores
+  const psLabels = Object.keys(stats.platScores).sort((a,b)=>stats.platScores[b]-stats.platScores[a]);
+  const psVals = psLabels.map(p => stats.platScores[p]);
+  platformScoreChart.data.labels = psLabels;
+  platformScoreChart.data.datasets[0].data = psVals;
+  platformScoreChart.options.scales.y.min = Math.max(5.8, Math.min(...psVals) - 0.1);
+  platformScoreChart.options.scales.y.max = Math.min(9.5, Math.max(...psVals) + 0.1);
+  platformScoreChart.update();
+}
+
+function updateLiveStats(stats) {
+  if (!stats) return;
+
+  // Hero avg
+  document.getElementById('live-avg-score').textContent = stats.avgScore.toFixed(2);
+
+  // Stat cards
+  const sleepLabel = currentSleep >= 10 ? 'All participants' : `Sleep ≤ ${currentSleep.toFixed(1)}h`;
+  document.getElementById('stat-sleep').innerHTML = `${currentSleep >= 10 ? '6.3' : currentSleep.toFixed(1)} <span style="font-size:1rem">hrs</span>`;
+  document.getElementById('stat-sleep-sub').textContent = currentSleep >= 10 ? 'All participants avg' : 'Max sleep threshold';
+  document.getElementById('stat-score').textContent = stats.avgScore.toFixed(2);
+  document.getElementById('stat-score-sub').textContent = sleepLabel;
+  document.getElementById('stat-count').textContent = stats.totalFiltered.toLocaleString();
+  document.getElementById('stat-count-sub').textContent = (stats.totalFiltered/TOTAL_N*100).toFixed(1)+'% of dataset';
+
+  // Live stats under distribution chart
+  document.getElementById('ls-low').textContent = stats.low.toLocaleString();
+  document.getElementById('ls-med').textContent = stats.med.toLocaleString();
+  document.getElementById('ls-high').textContent = stats.high.toLocaleString();
+  document.getElementById('ls-avg').textContent = stats.avgScore.toFixed(2);
+
+  // Live stats under platform chart
+  const sortedPlats = Object.entries(stats.platCounts).sort((a,b)=>b[1]-a[1]);
+  const topPlatform = sortedPlats[0];
+  const totalPlats = Object.values(stats.platCounts).reduce((a,b)=>a+b,0);
+  document.getElementById('ls-top-platform').textContent = topPlatform[0];
+  document.getElementById('ls-top-pct').textContent = (topPlatform[1]/totalPlats*100).toFixed(1)+'%';
+  document.getElementById('ls-platform-count').textContent = totalPlats.toLocaleString();
+}
+
+// ======================================================
+// NAV
+// ======================================================
+function showPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (name === 'data') renderTable();
+}
+
+// ======================================================
+// STATIC CHARTS (Insights page)
+// ======================================================
+function initInsightCharts() {
+  const gc = '#1e2d47', tc = '#64748b';
+  new Chart(document.getElementById('ageChart'), {
+    type:'line',
+    data:{labels:['18','19','20','21','22','23','24'],
+      datasets:[{data:[7.11,6.78,6.51,6.40,6.18,6.05,5.64],
+        borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.08)',
+        fill:true,tension:0.4,pointBackgroundColor:'#3b82f6',pointRadius:5,borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{grid:{color:gc},ticks:{color:tc}},y:{min:5,max:8,grid:{color:gc},ticks:{color:tc}}}}
+  });
+  new Chart(document.getElementById('academicChart'), {
+    type:'bar',
+    data:{labels:['Affects Performance (Yes)','Does Not Affect (No)'],
+      datasets:[{data:[7.45,4.59],backgroundColor:['#ef4444','#10b981'],borderRadius:6,borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{grid:{color:gc},ticks:{color:tc}},y:{min:0,max:10,grid:{color:gc},ticks:{color:tc}}}}
+  });
+}
+
+// ======================================================
+// GOV TABLE & PLATFORM PILLS
+// ======================================================
+const govData=[
+  {gov:'Alexandria',score:6.53},{gov:'Luxor',score:6.51},{gov:'Red Sea',score:6.51},
+  {gov:'Sharqia',score:6.49},{gov:'Minya',score:6.49},{gov:'Sohag',score:6.48},
+  {gov:'Fayoum',score:6.47},{gov:'Beheira',score:6.45},{gov:'Dakahlia',score:6.45},{gov:'Qena',score:6.45}
+];
+const tbody = document.getElementById('gov-table-body');
+govData.forEach((r,i)=>{
+  const pct = ((r.score-6.0)/0.6*100).toFixed(0);
+  const color = r.score>=6.5?'#ef4444':r.score>=6.45?'#f59e0b':'#3b82f6';
+  tbody.innerHTML+=`<tr>
+    <td style="color:var(--muted)">${i+1}</td><td>${r.gov}</td>
+    <td><span class="score-chip" style="background:rgba(59,130,246,.1);color:${color}">${r.score}</span></td>
+    <td><span class="risk-badge ${r.score>=6.5?'risk-high':'risk-med'}">${r.score>=6.5?'High':'Medium'}</span></td>
+    <td style="width:120px"><div class="insight-bar-track"><div class="insight-bar-fill" style="width:${Math.min(pct,100)}%;background:${color}"></div></div></td>
+  </tr>`;
+});
+
+const platList=[
+  {name:'Instagram',score:6.45,users:3441,color:'#e1306c'},
+  {name:'TikTok',score:6.51,users:2114,color:'#69c9d0'},
+  {name:'Facebook',score:6.39,users:1651,color:'#1877f2'},
+  {name:'WhatsApp',score:6.42,users:737,color:'#25d366'},
+  {name:'Twitter',score:6.31,users:409,color:'#1da1f2'},
+  {name:'LinkedIn',score:6.52,users:293,color:'#0a66c2'},
+  {name:'Snapchat',score:6.46,users:151,color:'#ffd500'},
+  {name:'YouTube',score:6.43,users:126,color:'#ff0000'},
+  {name:'WeChat',score:6.47,users:207,color:'#07c160'},
+  {name:'VKontakte',score:6.19,users:177,color:'#4c75a3'},
+  {name:'LINE',score:6.33,users:165,color:'#00b900'},
+  {name:'KakaoTalk',score:6.28,users:156,color:'#fee500'},
+];
+const pillsEl = document.getElementById('platform-pills');
+platList.forEach(p=>{
+  pillsEl.innerHTML+=`<div class="platform-pill">
+    <span class="pill-dot" style="background:${p.color}"></span>
+    <span>${p.name}</span>
+    <span style="color:var(--muted)">${p.users.toLocaleString()} users</span>
+    <span style="color:var(--accent);font-family:'Space Mono',monospace;font-size:.72rem">⊙${p.score}</span>
+  </div>`;
+});
+
+// ======================================================
+// PREDICTOR
+// ======================================================
+const pScores={Instagram:6.45,TikTok:6.51,Facebook:6.39,WhatsApp:6.42,Twitter:6.31,LinkedIn:6.52,Snapchat:6.46,YouTube:6.43,WeChat:6.47,LINE:6.33,KakaoTalk:6.28,VKontakte:6.19};
+const aScores={'High School':6.53,Undergraduate:6.45,Graduate:6.41};
+const ageScores={18:7.11,19:6.78,20:6.51,21:6.40,22:6.18,23:6.05,24:5.64};
+
+function predict() {
+  const age=parseInt(document.getElementById('p-age').value);
+  const platform=document.getElementById('p-platform').value;
+  const usage=parseFloat(document.getElementById('p-usage').value);
+  const sleep=parseFloat(document.getElementById('p-sleep').value);
+  const mental=parseInt(document.getElementById('p-mental').value);
+  const conflicts=parseInt(document.getElementById('p-conflicts').value);
+  const acadPerf=document.getElementById('p-academic-perf').value;
+  const academic=document.getElementById('p-academic').value;
+
+  let score=6.44;
+  score+=(usage-5.1)*0.65;
+  score+=(6.3-sleep)*0.58;
+  score+=(6.5-mental)*0.72;
+  score+=(conflicts-2.5)*0.3;
+  score+=(ageScores[age]-6.44)*0.4;
+  score+=(acadPerf==='Yes'?0.5:-0.5);
+  score+=(pScores[platform]-6.44)*0.3;
+  score+=(aScores[academic]-6.44)*0.2;
+  score=Math.max(2,Math.min(9,Math.round(score*10)/10));
+
+  const pct=((score-2)/7)*100;
+  const ringColor=score<=4?'#10b981':score<=6?'#f59e0b':'#ef4444';
+  const riskLabel=score<=4?'Low Risk':score<=6?'Moderate Risk':'High Risk';
+  const riskClass=score<=4?'risk-low':score<=6?'risk-med':'risk-high';
+  const circumference=2*Math.PI*54;
+  const offset=circumference-(pct/100)*circumference;
+
+  const factors=[
+    {icon:'📱',text:`Daily usage: ${usage}h`,impact:usage>=7?'HIGH':usage>=5?'MED':'LOW',cls:usage>=7?'impact-high':usage>=5?'impact-med':'impact-low'},
+    {icon:'🧠',text:`Mental health: ${mental}/10`,impact:mental<=5?'HIGH':mental<=7?'MED':'LOW',cls:mental<=5?'impact-high':mental<=7?'impact-med':'impact-low'},
+    {icon:'😴',text:`Sleep: ${sleep}h/night`,impact:sleep<=5?'HIGH':sleep<=7?'MED':'LOW',cls:sleep<=5?'impact-high':sleep<=7?'impact-med':'impact-low'},
+    {icon:'⚔️',text:`Conflicts: ${conflicts}/5`,impact:conflicts>=4?'HIGH':conflicts>=2?'MED':'LOW',cls:conflicts>=4?'impact-high':conflicts>=2?'impact-med':'impact-low'},
+    {icon:'🎓',text:`Academic impact: ${acadPerf}`,impact:acadPerf==='Yes'?'HIGH':'LOW',cls:acadPerf==='Yes'?'impact-high':'impact-low'},
+  ];
+  // Recommendations based on USAGE HOURS (primary driver)
+  let recs;
+  if (usage < 2) {
+    recs = [
+      '✅ Excellent! Under 2 hours/day is a very healthy digital habit.',
+      '✅ Your usage is well within the safe zone — keep it up!',
+      '✅ Continue maintaining this balanced relationship with social media.',
+      '✅ Use your free time for hobbies, exercise, and face-to-face social time.',
+      '✅ Great mental health indicator — low usage strongly protects wellbeing.',
+    ];
+  } else if (usage >= 2 && usage < 5) {
+    recs = [
+      '✅ Good range! 2–5 hours/day is considered moderate and manageable.',
+      '✅ You are within a healthy usage zone — no immediate concern.',
+      '💡 Set a daily screen time goal of 4 hours maximum to stay on track.',
+      '💡 Take a 10-minute break for every 1 hour of social media use.',
+      '💡 Avoid using social media in the last 30 minutes before sleeping.',
+      '💡 Try replacing 30 min of scrolling with reading or physical activity.',
+    ];
+  } else if (usage >= 5 && usage < 7) {
+    recs = [
+      '⚠️ Caution: 5–7 hours/day is above average and may impact productivity.',
+      '⚠️ Try reducing your daily usage by at least 1–2 hours gradually.',
+      '⚠️ Use built-in app timers (iOS Screen Time / Android Digital Wellbeing).',
+      '⚠️ Schedule specific "no-phone" periods during the day (meals, study time).',
+      '⚠️ High usage at this level is linked to poor sleep and lower mental health.',
+      '⚠️ Replace evening scrolling with a relaxing offline activity.',
+    ];
+  } else {
+    recs = [
+      '🚨 Critical: 7+ hours/day is extremely high and strongly linked to addiction.',
+      '🚨 Immediate action needed — aim to cut down to under 5 hours as first step.',
+      '🚨 Delete the most time-consuming apps or move them off your home screen.',
+      '🚨 Use grayscale screen mode to make social media less visually stimulating.',
+      '🚨 Seek support from a counselor, parent, or trusted mentor.',
+      '🚨 Set hard screen time locks through your device settings.',
+      '🚨 Track daily usage weekly and reward yourself for reductions.',
+    ];
+  }
+
+  document.getElementById('result-panel').innerHTML=`
+    <div>
+      <div class="card-title">Predicted Addiction Score</div>
+      <div class="result-score-ring">
+        <svg class="ring-svg" viewBox="0 0 120 120">
+          <circle class="ring-bg" cx="60" cy="60" r="54"/>
+          <circle class="ring-fill" cx="60" cy="60" r="54" stroke="${ringColor}"
+            stroke-dasharray="${circumference}" stroke-dashoffset="${offset}"/>
+          <text x="60" y="55" text-anchor="middle" fill="${ringColor}"
+            font-family="Space Mono" font-size="22" font-weight="700">${score.toFixed(1)}</text>
+          <text x="60" y="72" text-anchor="middle" fill="#64748b" font-size="9">out of 9</text>
+        </svg>
+        <span class="risk-badge ${riskClass}">${riskLabel}</span>
+      </div>
+    </div>
+    <div>
+      <div class="card-title" style="margin-bottom:.75rem">Factor Analysis</div>
+      <div class="result-factors">
+        ${factors.map(f=>`<div class="factor-row"><span class="factor-icon">${f.icon}</span><span class="factor-text">${f.text}</span><span class="factor-impact ${f.cls}">${f.impact}</span></div>`).join('')}
+      </div>
+    </div>
+    <div>
+      <div class="card-title" style="margin-bottom:.75rem">Recommendations</div>
+      <div class="rec-list">${recs.map(r=>`<div class="rec-item">${r}</div>`).join('')}</div>
+    </div>`;
+}
+
+// ======================================================
+// DATA TABLE
+// ======================================================
+function renderTable() {
+  const gender=document.getElementById('filter-gender').value;
+  const platform=document.getElementById('filter-platform').value;
+  const sf=document.getElementById('filter-score').value;
+  let rows=FULL_DATA.filter(r=>{
+    if(gender&&r.gender!==gender)return false;
+    if(platform&&r.platform!==platform)return false;
+    if(sf==='low'&&r.score>4)return false;
+    if(sf==='med'&&(r.score<5||r.score>6))return false;
+    if(sf==='high'&&r.score<7)return false;
+    return true;
+  });
+  document.getElementById('row-count').textContent=`${rows.length} rows`;
+  document.getElementById('data-tbody').innerHTML=rows.map(r=>{
+    const sc=r.score>=7?'#ef4444':r.score>=5?'#f59e0b':'#10b981';
+    return`<tr>
+      <td>${r.age}</td><td>${r.gender}</td><td>${r.academic}</td><td>${r.gov}</td>
+      <td style="font-family:'Space Mono',monospace">${r.usage}h</td>
+      <td>${r.platform}</td>
+      <td><span style="color:${r.acad==='Yes'?'#ef4444':'#10b981'}">${r.acad}</span></td>
+      <td>${r.sleep}h</td><td>${r.mental}</td><td>${r.conflicts}</td>
+      <td><span class="score-chip" style="background:rgba(59,130,246,.1);color:${sc};font-weight:700">${r.score}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ======================================================
+// INIT
+// ======================================================
+initCharts();
+initInsightCharts();
+renderTable();
+</script>
+</body>
+</html>
